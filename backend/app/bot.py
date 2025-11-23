@@ -15,11 +15,18 @@ app = App(token=SLACK_BOT_TOKEN)
 def handle_message(message, logger):
     """
     Handle all incoming messages.
-    Filters out FDE messages - only process customer messages.
+    Filters out FDE messages and bot messages - only process customer messages.
     """
     user = message.get("user", "Unknown")
     text = message.get("text", "")
     channel = message.get("channel", "Unknown")
+    subtype = message.get("subtype")
+
+    # Filter: Skip bot messages (edited, deleted, bot_message, etc.)
+    if subtype is not None:
+        logger.info(f"⊘ Skipping message with subtype: {subtype}")
+        print(f"⊘ Skipping message with subtype: {subtype}")
+        return
 
     # Filter: Skip FDE messages
     if user == FDE_USER_ID:
