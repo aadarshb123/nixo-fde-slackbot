@@ -6,6 +6,7 @@ Connects to Slack using Socket Mode and logs all incoming messages.
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from app.config import SLACK_BOT_TOKEN, SLACK_APP_TOKEN, FDE_USER_ID
+from app.classifier import classify_message
 
 # Initialize Slack app
 app = App(token=SLACK_BOT_TOKEN)
@@ -15,8 +16,13 @@ app = App(token=SLACK_BOT_TOKEN)
 def handle_message(message, logger):
     """
     Handle all incoming messages.
-    Filters out FDE messages and bot messages - only process customer messages.
+
+    Flow:
+    1. Filter out bot messages and FDE messages
+    2. Classify customer messages using AI
+    3. Log classification results
     """
+    # Extract message data
     user = message.get("user", "Unknown")
     text = message.get("text", "")
     channel = message.get("channel", "Unknown")
@@ -25,25 +31,37 @@ def handle_message(message, logger):
     # Filter: Skip bot messages (edited, deleted, bot_message, etc.)
     if subtype is not None:
         logger.info(f"⊘ Skipping message with subtype: {subtype}")
-        print(f"⊘ Skipping message with subtype: {subtype}")
         return
 
     # Filter: Skip FDE messages
     if user == FDE_USER_ID:
-        logger.info(f"⊘ Skipping FDE message from {user}")
-        print(f"⊘ Skipping FDE message")
+        logger.info(f"⊘ Skipping FDE message")
         return
 
-    # Customer message - process it
-    print(f"📨 Customer message received:")
-    print(f"   User: {user}")
-    print(f"   Channel: {channel}")
-    print(f"   Text: {text}")
+    # Customer message - classify it
+    print(f"\n{'=' * 60}")
+    print(f"📨 Customer Message")
+    print(f"{'=' * 60}")
+    print(f"User:    {user}")
+    print(f"Channel: {channel}")
+    print(f"Text:    {text}")
 
-    logger.info(f"📨 Customer message received:")
-    logger.info(f"   User: {user}")
-    logger.info(f"   Channel: {channel}")
-    logger.info(f"   Text: {text}")
+    # Classify the message
+    print(f"\n🤖 Classifying message...")
+    classification = classify_message(text)
+
+    # Display classification results
+    print(f"\n📊 Classification Results:")
+    print(f"   Relevant:   {classification['is_relevant']}")
+    print(f"   Category:   {classification['category']}")
+    print(f"   Confidence: {classification['confidence']}")
+    print(f"   Summary:    {classification['summary']}")
+    print(f"{'=' * 60}\n")
+
+    # Log to Slack logger
+    logger.info(f"Message classified: {classification['category']} (confidence: {classification['confidence']})")
+
+    # TODO: Next step - store in database and group with similar messages
 
 
 @app.error
