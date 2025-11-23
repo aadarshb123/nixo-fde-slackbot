@@ -11,6 +11,16 @@ interface IssueGroup {
   updated_at: string
 }
 
+interface Message {
+  id: string
+  text: string
+  user_name: string
+  channel_name: string
+  timestamp: string
+  summary: string
+  confidence: number
+}
+
 const CATEGORIES = ['all', 'support', 'bug', 'feature', 'question'] as const
 type CategoryFilter = typeof CATEGORIES[number]
 
@@ -19,6 +29,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all')
+  const [selectedGroup, setSelectedGroup] = useState<IssueGroup | null>(null)
+  const [groupMessages, setGroupMessages] = useState<Message[]>([])
+  const [loadingMessages, setLoadingMessages] = useState(false)
 
   useEffect(() => {
     fetchIssueGroups()
@@ -62,6 +75,36 @@ export default function Dashboard() {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function fetchGroupMessages(groupId: string) {
+    try {
+      setLoadingMessages(true)
+      const { data, error } = await supabase
+        .from('message_groups')
+        .select('messages(*)')
+        .eq('group_id', groupId)
+
+      if (error) throw error
+
+      // Extract messages from the join result
+      const messages = data?.map(row => row.messages).filter(Boolean) || []
+      setGroupMessages(messages as Message[])
+    } catch (err) {
+      console.error('Error fetching messages:', err)
+    } finally {
+      setLoadingMessages(false)
+    }
+  }
+
+  function openGroupDetails(group: IssueGroup) {
+    setSelectedGroup(group)
+    fetchGroupMessages(group.id)
+  }
+
+  function closeModal() {
+    setSelectedGroup(null)
+    setGroupMessages([])
   }
 
   if (loading) {
@@ -113,12 +156,17 @@ export default function Dashboard() {
         {filteredGroups.map((group) => (
           <div
             key={group.id}
+            onClick={() => openGroupDetails(group)}
             style={{
               border: '1px solid #ccc',
               padding: '15px',
               marginBottom: '10px',
-              borderRadius: '5px'
+              borderRadius: '5px',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
             }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
           >
             <h3>{group.title}</h3>
             <p><strong>Category:</strong> {group.category}</p>
@@ -127,9 +175,100 @@ export default function Dashboard() {
             <p style={{ fontSize: '12px', color: '#666' }}>
               Created: {new Date(group.created_at).toLocaleString()}
             </p>
+            <p style={{ fontSize: '12px', color: '#646cff', marginTop: '10px' }}>
+              Click to view messages →
+            </p>
           </div>
         ))}
       </div>
+
+      {/* Modal for message details */}
+      {selectedGroup && (
+        <div
+          onClick={closeModal}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: 'white',
+              padding: '30px',
+              borderRadius: '8px',
+              maxWidth: '800px',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              width: '90%'
+            }}
+          >
+            <h2>{selectedGroup.title}</h2>
+            <p><strong>Category:</strong> {selectedGroup.category}</p>
+            <p><strong>Status:</strong> {selectedGroup.status}</p>
+            <p>{selectedGroup.summary}</p>
+
+            <hr style={{ margin: '20px 0' }} />
+
+            <h3>Messages ({groupMessages.length})</h3>
+
+            {loadingMessages ? (
+              <p>Loading messages...</p>
+            ) : groupMessages.length === 0 ? (
+              <p>No messages in this group</p>
+            ) : (
+              <div style={{ marginTop: '15px' }}>
+                {groupMessages.map((message) => (
+                  <div
+                    key={message.id}
+                    style={{
+                      border: '1px solid #eee',
+                      padding: '15px',
+                      marginBottom: '10px',
+                      borderRadius: '4px',
+                      backgroundColor: '#fafafa'
+                    }}
+                  >
+                    <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+                      {message.user_name} in #{message.channel_name}
+                    </p>
+                    <p style={{ marginBottom: '8px' }}>{message.text}</p>
+                    <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+                      Summary: {message.summary}
+                    </p>
+                    <p style={{ fontSize: '12px', color: '#666' }}>
+                      {new Date(message.timestamp).toLocaleString()} • Confidence: {(message.confidence * 100).toFixed(0)}%
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={closeModal}
+              style={{
+                marginTop: '20px',
+                padding: '10px 20px',
+                backgroundColor: '#646cff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
