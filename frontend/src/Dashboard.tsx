@@ -6,8 +6,7 @@ import { useToasts } from './hooks/useToasts'
 import Header from './components/Header'
 import SearchBar from './components/SearchBar'
 import StatsCards from './components/StatsCards'
-import CategoryFilterComponent from './components/CategoryFilter'
-import TimeFilterComponent from './components/TimeFilter'
+import CombinedFilters from './components/CombinedFilters'
 import IssueCard from './components/IssueCard'
 import IssueModal from './components/IssueModal'
 import ToastContainer from './components/ToastContainer'
@@ -99,6 +98,12 @@ export default function Dashboard() {
           onToggleDarkMode={() => setDarkMode(!darkMode)}
         />
 
+        <StatsCards
+          issueGroups={issueGroups}
+          darkMode={darkMode}
+          theme={theme}
+        />
+
         <SearchBar
           searchQuery={searchQuery}
           darkMode={darkMode}
@@ -106,24 +111,13 @@ export default function Dashboard() {
           onSearchChange={setSearchQuery}
         />
 
-        <StatsCards
-          issueGroups={issueGroups}
-          darkMode={darkMode}
-          theme={theme}
-        />
-
-        <CategoryFilterComponent
+        <CombinedFilters
           selectedCategory={selectedCategory}
+          selectedTimeFilter={selectedTimeFilter}
           issueGroups={issueGroups}
           darkMode={darkMode}
           theme={theme}
           onCategoryChange={setSelectedCategory}
-        />
-
-        <TimeFilterComponent
-          selectedTimeFilter={selectedTimeFilter}
-          darkMode={darkMode}
-          theme={theme}
           onTimeFilterChange={setSelectedTimeFilter}
         />
 
