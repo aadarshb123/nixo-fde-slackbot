@@ -16,13 +16,16 @@ export default function Header({ darkMode, theme, onToggleDarkMode }: HeaderProp
     }}>
       <div>
         <h1 style={{
-          fontSize: '42px',
-          fontWeight: '800',
-          color: theme.text,
+          fontSize: '48px',
+          fontWeight: '900',
+          color: theme.accent,
           margin: '0 0 12px 0',
-          letterSpacing: '-0.02em'
+          letterSpacing: '-0.03em',
+          textShadow: darkMode
+            ? '0 2px 8px rgba(232, 74, 154, 0.4), 0 4px 16px rgba(232, 74, 154, 0.2)'
+            : '0 2px 8px rgba(196, 26, 118, 0.3), 0 4px 16px rgba(196, 26, 118, 0.1)',
         }}>
-          FDE Dashboard
+          Nixo FDE Dashboard
         </h1>
         <p style={{
           fontSize: '18px',

@@ -3,13 +3,13 @@ import { CATEGORY_COLORS } from './constants'
 
 export function getTheme(darkMode: boolean): Theme {
   return {
-    bg: darkMode ? '#0F172A' : '#F8FAFC',
-    cardBg: darkMode ? '#1E293B' : '#FFFFFF',
-    text: darkMode ? '#F1F5F9' : '#0F172A',
-    textSecondary: darkMode ? '#94A3B8' : '#64748B',
-    border: darkMode ? '#334155' : '#E2E8F0',
-    hover: darkMode ? '#334155' : '#F1F5F9',
-    accent: darkMode ? '#818CF8' : '#6366F1',
+    bg: darkMode ? '#1c1c1c' : '#fafafa',
+    cardBg: darkMode ? '#2a2a2a' : '#ffffff',
+    text: darkMode ? '#ffffff' : '#1c1c1c',
+    textSecondary: darkMode ? '#bdbdbd' : '#6d6d6d',
+    border: darkMode ? '#3a3a3a' : '#eee',
+    hover: darkMode ? '#3a3a3a' : '#f4f4f4',
+    accent: darkMode ? '#e84a9a' : '#c41a76',
   }
 }
 
