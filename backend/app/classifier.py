@@ -162,3 +162,44 @@ def _get_default_classification() -> Dict[str, Any]:
         'confidence': 0.0,
         'summary': 'Classification error'
     }
+
+
+def determine_priority(category: str, confidence: float) -> str:
+    """
+    Automatically determine priority based on message category and confidence.
+
+    Priority Rules:
+    - bug + high confidence (>0.8) = critical
+    - bug + medium confidence = high
+    - bug + low confidence = medium
+    - support = high (customers need help urgently)
+    - feature = low (can be planned)
+    - question = medium (needs response but not urgent)
+    - irrelevant = low
+
+    Args:
+        category: Message category (support/bug/feature/question/irrelevant)
+        confidence: Classification confidence (0.0-1.0)
+
+    Returns:
+        Priority level: 'critical', 'high', 'medium', or 'low'
+    """
+    if category == 'bug':
+        if confidence >= 0.8:
+            return 'critical'  # High-confidence bug = critical
+        elif confidence >= 0.6:
+            return 'high'      # Medium-confidence bug = high
+        else:
+            return 'medium'    # Low-confidence bug = medium
+
+    elif category == 'support':
+        return 'high'          # Customer needs help = high priority
+
+    elif category == 'question':
+        return 'medium'        # Questions need response = medium priority
+
+    elif category == 'feature':
+        return 'low'           # Feature requests = low priority
+
+    else:  # irrelevant
+        return 'low'           # Irrelevant = low priority

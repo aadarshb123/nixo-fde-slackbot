@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import type { IssueGroup, Message, Theme } from '../types'
+import type { IssueGroup, Message, Theme, Priority, WorkflowStatus } from '../types'
+import { PRIORITIES, WORKFLOW_STATUSES } from '../types'
 import { getCategoryColor, getSlackLink, truncateTitle } from '../utils'
 import { supabase } from '../supabaseClient'
 
@@ -28,6 +29,8 @@ export default function IssueModal({
   const [showMergeModal, setShowMergeModal] = useState(false)
   const [availableGroups, setAvailableGroups] = useState<IssueGroup[]>([])
   const [isMerging, setIsMerging] = useState(false)
+  const [priority, setPriority] = useState<Priority>(selectedGroup.priority || 'medium')
+  const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatus>(selectedGroup.workflow_status || 'backlog')
 
   async function handleSaveTitle() {
     if (editedTitle.trim() === '' || editedTitle === selectedGroup.title) {
@@ -170,6 +173,36 @@ export default function IssueModal({
     }
   }
 
+  async function handleUpdatePriority(newPriority: Priority) {
+    try {
+      const { error } = await supabase
+        .from('issue_groups')
+        .update({ priority: newPriority })
+        .eq('id', selectedGroup.id)
+
+      if (error) throw error
+      setPriority(newPriority)
+      selectedGroup.priority = newPriority
+    } catch (error) {
+      console.error('Error updating priority:', error)
+    }
+  }
+
+  async function handleUpdateWorkflowStatus(newStatus: WorkflowStatus) {
+    try {
+      const { error } = await supabase
+        .from('issue_groups')
+        .update({ workflow_status: newStatus })
+        .eq('id', selectedGroup.id)
+
+      if (error) throw error
+      setWorkflowStatus(newStatus)
+      selectedGroup.workflow_status = newStatus
+    } catch (error) {
+      console.error('Error updating workflow status:', error)
+    }
+  }
+
   return (
     <div
       onClick={onClose}
@@ -288,6 +321,92 @@ export default function IssueModal({
               <span>⇄</span>
               <span>Merge</span>
             </button>
+          </div>
+
+          {/* JIRA-lite Controls */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '16px',
+            marginBottom: '24px',
+            padding: '20px',
+            backgroundColor: theme.hover,
+            borderRadius: '12px',
+            border: `1px solid ${theme.border}`
+          }}>
+            {/* Priority Selector */}
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: theme.textSecondary,
+                marginBottom: '8px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>
+                Priority
+              </label>
+              <select
+                value={priority}
+                onChange={(e) => handleUpdatePriority(e.target.value as Priority)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  backgroundColor: theme.cardBg,
+                  color: theme.text,
+                  border: `1px solid ${theme.border}`,
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
+              >
+                {PRIORITIES.map(p => (
+                  <option key={p} value={p}>
+                    {p.charAt(0).toUpperCase() + p.slice(1)} {p === 'critical' ? '🔴' : p === 'high' ? '🟠' : p === 'medium' ? '🟡' : '🟢'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Workflow Status Selector */}
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: theme.textSecondary,
+                marginBottom: '8px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>
+                Status
+              </label>
+              <select
+                value={workflowStatus}
+                onChange={(e) => handleUpdateWorkflowStatus(e.target.value as WorkflowStatus)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  backgroundColor: theme.cardBg,
+                  color: theme.text,
+                  border: `1px solid ${theme.border}`,
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
+              >
+                {WORKFLOW_STATUSES.map(status => (
+                  <option key={status.value} value={status.value}>
+                    {status.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {isEditingTitle ? (

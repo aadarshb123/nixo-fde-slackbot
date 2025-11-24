@@ -1,5 +1,6 @@
-import type { IssueGroup, Theme } from '../types'
+import type { IssueGroup, Theme, Priority } from '../types'
 import { getCategoryColor, truncateTitle } from '../utils'
+import { WORKFLOW_STATUSES } from '../types'
 
 interface IssueCardProps {
   group: IssueGroup
@@ -7,6 +8,38 @@ interface IssueCardProps {
   darkMode: boolean
   theme: Theme
   onCardClick: (group: IssueGroup) => void
+}
+
+// Helper function to get priority color
+function getPriorityColor(priority: Priority): string {
+  switch (priority) {
+    case 'critical':
+      return '#EF4444' // Red
+    case 'high':
+      return '#F59E0B' // Orange
+    case 'medium':
+      return '#F59E0B' // Yellow
+    case 'low':
+      return '#10B981' // Green
+    default:
+      return '#6B7280' // Gray
+  }
+}
+
+// Helper function to get priority emoji
+function getPriorityEmoji(priority: Priority): string {
+  switch (priority) {
+    case 'critical':
+      return '🔴'
+    case 'high':
+      return '🟠'
+    case 'medium':
+      return '🟡'
+    case 'low':
+      return '🟢'
+    default:
+      return '⚪'
+  }
 }
 
 export default function IssueCard({
@@ -47,8 +80,8 @@ export default function IssueCard({
         e.currentTarget.style.borderColor = theme.border
       }}
     >
-      {/* Category badge and message count */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}>
+      {/* Category badge, priority badge, and message count */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{
           display: 'inline-block',
           padding: '6px 14px',
@@ -62,6 +95,24 @@ export default function IssueCard({
         }}>
           {group.category}
         </div>
+        {group.priority && (
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 12px',
+            backgroundColor: `${getPriorityColor(group.priority)}20`,
+            color: getPriorityColor(group.priority),
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: '700',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em'
+          }}>
+            <span>{getPriorityEmoji(group.priority)}</span>
+            <span>{group.priority}</span>
+          </div>
+        )}
         {messageCount > 0 && (
           <div style={{
             display: 'inline-flex',

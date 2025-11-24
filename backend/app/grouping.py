@@ -13,6 +13,7 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta, timezone
 from openai import OpenAI
 from app.config import OPENAI_API_KEY
+from app.classifier import determine_priority
 from app.database import (
     get_messages_by_thread,
     create_issue_group,
@@ -38,7 +39,8 @@ def group_by_thread(
     message_id: str,
     thread_ts: Optional[str],
     category: str,
-    summary: str
+    summary: str,
+    confidence: float
 ) -> Optional[str]:
     """
     Group a message with other messages in the same Slack thread.
@@ -104,10 +106,14 @@ def group_by_thread(
         # Create group summary
         group_summary = f"Slack thread with {len(thread_messages) + 1} messages. {summary}"
 
+        # Calculate priority based on category and confidence
+        priority = determine_priority(category, confidence)
+
         group_id = create_issue_group(
             title=title,
             summary=group_summary,
-            category=category
+            category=category,
+            priority=priority
         )
 
         # Add current message to group
@@ -188,7 +194,8 @@ def group_by_similarity(
     message_id: str,
     message_text: str,
     category: str,
-    summary: str
+    summary: str,
+    confidence: float
 ) -> Optional[str]:
     """
     Group a message with semantically similar messages.
@@ -228,6 +235,9 @@ def group_by_similarity(
     for g in all_groups:
         try:
             created_at = datetime.fromisoformat(g['created_at'].replace('Z', '+00:00'))
+            # Ensure created_at is timezone-aware
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
             if created_at >= cutoff_time:
                 recent_groups.append(g)
         except Exception as e:
@@ -281,10 +291,14 @@ def group_by_similarity(
         title = f"{category.title()}: {summary[:50]}"
         group_summary = f"Issue group for {category} messages. {summary}"
 
+        # Calculate priority based on category and confidence
+        priority = determine_priority(category, confidence)
+
         group_id = create_issue_group(
             title=title,
             summary=group_summary,
-            category=category
+            category=category,
+            priority=priority
         )
 
         add_message_to_group(

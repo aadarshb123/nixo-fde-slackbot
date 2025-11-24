@@ -190,7 +190,9 @@ def get_messages_by_thread(thread_ts: str) -> list[Dict[str, Any]]:
 def create_issue_group(
     title: str,
     summary: str,
-    category: str
+    category: str,
+    priority: str = 'medium',
+    workflow_status: str = 'backlog'
 ) -> str:
     """
     Create a new issue group.
@@ -199,6 +201,8 @@ def create_issue_group(
         title: Short title for the issue group
         summary: Detailed summary of the grouped issue
         category: Issue category (support, bug, feature, question)
+        priority: Priority level (critical, high, medium, low). Defaults to 'medium'
+        workflow_status: Workflow status. Defaults to 'backlog'
 
     Returns:
         UUID of the created issue group
@@ -212,7 +216,9 @@ def create_issue_group(
         'title': title,
         'summary': summary,
         'category': category,
-        'status': 'open'
+        'status': 'open',  # Legacy field
+        'priority': priority,
+        'workflow_status': workflow_status
     }
 
     try:
@@ -397,6 +403,114 @@ def update_issue_group_title(group_id: str, title: str) -> bool:
 
     except Exception as e:
         print(f"❌ Database error updating issue group title: {e}")
+        return False
+
+
+def update_issue_group_priority(group_id: str, priority: str) -> bool:
+    """
+    Update the priority of an issue group.
+
+    Args:
+        group_id: Issue group UUID
+        priority: New priority (critical, high, medium, low)
+
+    Returns:
+        True if successful, False otherwise
+
+    Use Case: FDE changes priority of an issue
+    """
+    supabase = get_supabase_client()
+
+    try:
+        supabase.table('issue_groups')\
+            .update({'priority': priority})\
+            .eq('id', group_id)\
+            .execute()
+        return True
+
+    except Exception as e:
+        print(f"❌ Database error updating issue group priority: {e}")
+        return False
+
+
+def update_issue_group_workflow_status(group_id: str, workflow_status: str) -> bool:
+    """
+    Update the workflow status of an issue group.
+
+    Args:
+        group_id: Issue group UUID
+        workflow_status: New status (backlog, todo, in_progress, blocked, resolved, closed)
+
+    Returns:
+        True if successful, False otherwise
+
+    Use Case: FDE moves issue through workflow
+    """
+    supabase = get_supabase_client()
+
+    try:
+        supabase.table('issue_groups')\
+            .update({'workflow_status': workflow_status})\
+            .eq('id', group_id)\
+            .execute()
+        return True
+
+    except Exception as e:
+        print(f"❌ Database error updating issue group workflow status: {e}")
+        return False
+
+
+def update_issue_group_assignee(group_id: str, assignee: Optional[str]) -> bool:
+    """
+    Update the assignee of an issue group.
+
+    Args:
+        group_id: Issue group UUID
+        assignee: FDE email/name or None to unassign
+
+    Returns:
+        True if successful, False otherwise
+
+    Use Case: Assign issue to specific FDE
+    """
+    supabase = get_supabase_client()
+
+    try:
+        supabase.table('issue_groups')\
+            .update({'assignee': assignee})\
+            .eq('id', group_id)\
+            .execute()
+        return True
+
+    except Exception as e:
+        print(f"❌ Database error updating issue group assignee: {e}")
+        return False
+
+
+def update_issue_group_due_date(group_id: str, due_date: Optional[str]) -> bool:
+    """
+    Update the due date of an issue group.
+
+    Args:
+        group_id: Issue group UUID
+        due_date: Due date (ISO format string) or None to clear
+
+    Returns:
+        True if successful, False otherwise
+
+    Use Case: Set target resolution date
+    """
+    supabase = get_supabase_client()
+
+    try:
+        supabase.table('issue_groups')\
+            .update({'due_date': due_date})\
+            .eq('id', group_id)\
+            .execute()
+        return True
+
+    except Exception as e:
+        print(f"❌ Database error updating issue group due date: {e}")
         return False
 
 

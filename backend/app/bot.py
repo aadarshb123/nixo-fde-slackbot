@@ -110,7 +110,8 @@ def handle_message(message, client, logger):
             message_id=message_id,
             thread_ts=thread_ts,
             category=classification['category'],
-            summary=classification['summary']
+            summary=classification['summary'],
+            confidence=classification['confidence']
         )
 
         # Strategy 2: If not in thread, try semantic similarity grouping
@@ -119,7 +120,8 @@ def handle_message(message, client, logger):
                 message_id=message_id,
                 message_text=text,
                 category=classification['category'],
-                summary=classification['summary']
+                summary=classification['summary'],
+                confidence=classification['confidence']
             )
 
         if group_id:
