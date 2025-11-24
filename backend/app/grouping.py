@@ -10,6 +10,7 @@ Single Responsibility: Only handles message grouping logic.
 
 import numpy as np
 from typing import Optional, Dict, Any, List
+from datetime import datetime, timedelta, timezone
 from openai import OpenAI
 from app.config import OPENAI_API_KEY
 from app.database import (
@@ -24,7 +25,13 @@ from app.database import (
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Similarity threshold for grouping (0-1, higher = more similar)
-SIMILARITY_THRESHOLD = 0.85
+# 0.60 allows for reasonable variation in phrasing while grouping related issues
+# Lower threshold helps group messages about the same topic with different wording
+SIMILARITY_THRESHOLD = 0.60
+
+# Time window for grouping (only compare against recent groups)
+# Messages older than this won't be compared for similarity grouping
+GROUPING_TIME_WINDOW_HOURS = 24
 
 
 def group_by_thread(
@@ -212,15 +219,29 @@ def group_by_similarity(
     if new_embedding is None:
         return None
 
-    # Get all issue groups in the same category
+    # Get all issue groups (allow cross-category grouping based on semantic similarity)
     all_groups = get_all_issue_groups()
-    category_groups = [g for g in all_groups if g['category'] == category]
+
+    # Filter to recent groups only (within time window)
+    cutoff_time = datetime.now(timezone.utc) - timedelta(hours=GROUPING_TIME_WINDOW_HOURS)
+    recent_groups = []
+    for g in all_groups:
+        try:
+            created_at = datetime.fromisoformat(g['created_at'].replace('Z', '+00:00'))
+            if created_at >= cutoff_time:
+                recent_groups.append(g)
+        except Exception as e:
+            # If timestamp parsing fails, include the group anyway
+            print(f"   ⚠️  Could not parse timestamp for group {g['id'][:8]}...: {e}")
+            recent_groups.append(g)
+
+    print(f"   📊 Comparing against {len(recent_groups)} recent groups (current category: {category})")
 
     best_match_group = None
     best_similarity = 0.0
 
     # Compare against existing groups
-    for group in category_groups:
+    for group in recent_groups:
         messages = get_messages_in_group(group['id'])
 
         # Skip empty groups
@@ -239,6 +260,7 @@ def group_by_similarity(
             if similarity > best_similarity:
                 best_similarity = similarity
                 best_match_group = group
+                print(f"   📈 New best match: {similarity:.3f} (group: {group['id'][:8]}...)")
 
     # If similarity is high enough, add to existing group
     if best_similarity >= SIMILARITY_THRESHOLD and best_match_group:
@@ -247,8 +269,12 @@ def group_by_similarity(
             group_id=best_match_group['id'],
             similarity_score=best_similarity
         )
-        print(f"   🎯 Added to similar group: {best_match_group['id']} (similarity: {best_similarity:.2f})")
+        print(f"   🎯 Added to similar group: {best_match_group['id'][:8]}... (similarity: {best_similarity:.3f}, threshold: {SIMILARITY_THRESHOLD})")
         return best_match_group['id']
+
+    # Log why grouping didn't happen
+    if best_similarity > 0:
+        print(f"   ❌ Best similarity {best_similarity:.3f} below threshold {SIMILARITY_THRESHOLD}")
 
     # Otherwise, create new group
     try:
