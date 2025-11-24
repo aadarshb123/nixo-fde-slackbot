@@ -70,8 +70,9 @@ export function useIssueGroups(onNewGroup: (group: IssueGroup) => void) {
   useEffect(() => {
     fetchIssueGroups()
 
+    // Subscribe to both issue_groups AND message_groups for real-time updates
     const subscription = supabase
-      .channel('issue_groups_changes')
+      .channel('realtime_changes')
       .on(
         'postgres_changes',
         {
@@ -84,6 +85,19 @@ export function useIssueGroups(onNewGroup: (group: IssueGroup) => void) {
             const newGroup = payload.new as IssueGroup
             onNewGroup(newGroup)
           }
+          // Refetch everything when issue_groups change
+          fetchIssueGroups()
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'message_groups'
+        },
+        () => {
+          // When a message is added to a group, refetch to update counts
           fetchIssueGroups()
         }
       )
