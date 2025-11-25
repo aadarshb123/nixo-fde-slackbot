@@ -163,7 +163,8 @@ export default function IssueModal({
         .delete()
         .eq('id', selectedGroup.id)
 
-      // Close modal
+      // Close both modals
+      setShowMergeModal(false)
       onClose()
     } catch (error) {
       console.error('Error merging groups:', error)

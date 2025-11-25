@@ -34,7 +34,11 @@ npm install
 1. Create project at [supabase.com](https://supabase.com)
 2. Go to SQL Editor and copy/paste the entire contents of `backend/schema.sql`
 3. Click "Run" to execute the schema
-4. Enable real-time: Database → Replication → Enable `issue_groups` table
+4. Enable real-time for instant updates (free tier):
+   - Go to **Database** → **Publications** → **supabase_realtime**
+   - Under "Tables in this publication", click **Edit**
+   - Enable both `issue_groups` and `message_groups` tables
+   - Click **Save**
 
 **The schema includes:**
 - `messages` table with pgvector embeddings for semantic similarity
@@ -204,12 +208,14 @@ Dashboard: http://localhost:5173
 - Verify Supabase URL/key are correct
 - Check tables exist (run `backend/schema.sql`)
 - Ensure pgvector extension is enabled: `CREATE EXTENSION IF NOT EXISTS vector;`
-- Enable real-time on `issue_groups` table
 
-**Frontend not updating:**
-- Check browser console for errors
+**Frontend not updating in real-time:**
+- Check browser console for errors and real-time connection logs
 - Verify `VITE_*` env vars match Supabase credentials
-- Ensure real-time is enabled in Supabase
+- Ensure real-time is enabled for BOTH tables:
+  - `issue_groups` - for new issues, merges, splits, status changes
+  - `message_groups` - for message additions/removals during splits and merges
+- Real-time subscriptions should show in browser console as "Issue group change detected" and "Message group change detected"
 
 **Grouping not working:**
 - Ensure embeddings are being stored (see above)

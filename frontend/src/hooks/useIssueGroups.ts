@@ -81,23 +81,25 @@ export function useIssueGroups(onNewGroup: (group: IssueGroup) => void) {
           table: 'issue_groups'
         },
         (payload) => {
+          console.log('Issue group change detected:', payload.eventType)
           if (payload.eventType === 'INSERT' && payload.new) {
             const newGroup = payload.new as IssueGroup
             onNewGroup(newGroup)
           }
-          // Refetch everything when issue_groups change
+          // Refetch everything when issue_groups change (insert, update, delete)
           fetchIssueGroups()
         }
       )
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'message_groups'
         },
-        () => {
-          // When a message is added to a group, refetch to update counts
+        (payload) => {
+          console.log('Message group change detected:', payload.eventType)
+          // When messages are added, removed, or modified in groups, refetch to update counts
           fetchIssueGroups()
         }
       )
