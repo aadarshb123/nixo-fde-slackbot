@@ -160,7 +160,7 @@ def get_embedding(text: str) -> Optional[List[float]]:
         return response.data[0].embedding
 
     except Exception as e:
-        print(f"   ❌ Error getting embedding: {e}")
+        print(f"   ❌ Error getting embedding: {type(e).__name__}: {e}")
         return None
 
 
@@ -260,9 +260,17 @@ def group_by_similarity(
 
         # Calculate similarity with each message in group
         for msg in messages:
-            msg_embedding = get_embedding(msg['text'])
+            # Use stored embedding if available, otherwise calculate it
+            msg_embedding = msg.get('embedding')
             if msg_embedding is None:
-                continue
+                msg_embedding = get_embedding(msg['text'])
+                if msg_embedding is None:
+                    continue
+            else:
+                # Embedding retrieved from database - convert from string to list
+                if isinstance(msg_embedding, str):
+                    # Parse "[0.1,0.2,0.3,...]" string back into list of floats
+                    msg_embedding = [float(x) for x in msg_embedding.strip('[]').split(',')]
 
             similarity = cosine_similarity(new_embedding, msg_embedding)
 
@@ -270,7 +278,6 @@ def group_by_similarity(
             if similarity > best_similarity:
                 best_similarity = similarity
                 best_match_group = group
-                print(f"   📈 New best match: {similarity:.3f} (group: {group['id'][:8]}...)")
 
     # If similarity is high enough, add to existing group
     if best_similarity >= SIMILARITY_THRESHOLD and best_match_group:
@@ -279,12 +286,8 @@ def group_by_similarity(
             group_id=best_match_group['id'],
             similarity_score=best_similarity
         )
-        print(f"   🎯 Added to similar group: {best_match_group['id'][:8]}... (similarity: {best_similarity:.3f}, threshold: {SIMILARITY_THRESHOLD})")
+        print(f"   🎯 Added to similar group (similarity: {best_similarity:.3f})")
         return best_match_group['id']
-
-    # Log why grouping didn't happen
-    if best_similarity > 0:
-        print(f"   ❌ Best similarity {best_similarity:.3f} below threshold {SIMILARITY_THRESHOLD}")
 
     # Otherwise, create new group
     try:

@@ -32,58 +32,16 @@ npm install
 ### 2. Setup Supabase Database
 
 1. Create project at [supabase.com](https://supabase.com)
-2. Go to SQL Editor and run:
+2. Go to SQL Editor and copy/paste the entire contents of `backend/schema.sql`
+3. Click "Run" to execute the schema
+4. Enable real-time: Database → Replication → Enable `issue_groups` table
 
-```sql
--- Messages table
-CREATE TABLE messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    slack_message_id TEXT UNIQUE NOT NULL,
-    user_id TEXT NOT NULL,
-    user_name TEXT NOT NULL,
-    channel_id TEXT NOT NULL,
-    channel_name TEXT NOT NULL,
-    text TEXT NOT NULL,
-    thread_ts TEXT,
-    timestamp TIMESTAMPTZ NOT NULL,
-    is_relevant BOOLEAN NOT NULL,
-    category TEXT NOT NULL,
-    confidence FLOAT NOT NULL,
-    summary TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Issue groups table
-CREATE TABLE issue_groups (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    title TEXT NOT NULL,
-    summary TEXT NOT NULL,
-    category TEXT NOT NULL,
-    status TEXT DEFAULT 'open',
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Junction table
-CREATE TABLE message_groups (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
-    group_id UUID REFERENCES issue_groups(id) ON DELETE CASCADE,
-    similarity_score FLOAT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(message_id, group_id)
-);
-
--- Indexes
-CREATE INDEX idx_messages_timestamp ON messages(timestamp DESC);
-CREATE INDEX idx_messages_thread ON messages(thread_ts);
-CREATE INDEX idx_messages_category ON messages(category);
-CREATE INDEX idx_issue_groups_created ON issue_groups(created_at DESC);
-CREATE INDEX idx_issue_groups_status ON issue_groups(status);
-CREATE INDEX idx_message_groups_message ON message_groups(message_id);
-CREATE INDEX idx_message_groups_group ON message_groups(group_id);
-```
-
-3. Enable real-time: Database → Replication → Enable `issue_groups` table
+**The schema includes:**
+- `messages` table with pgvector embeddings for semantic similarity
+- `issue_groups` table with priority and status fields
+- `message_groups` junction table for many-to-many relationships
+- Optimized indexes for fast queries
+- Row Level Security policies
 
 ### 3. Create Slack App
 
@@ -222,16 +180,41 @@ Dashboard: http://localhost:5173
 - Check Socket Mode is enabled
 - Verify bot is invited to channel: `/invite @BotName`
 - Check `SLACK_APP_TOKEN` starts with `xapp-`
+- **Kill zombie bot processes:** Multiple bot instances can cause issues
+  ```bash
+  # Find all bot processes
+  ps aux | grep "app/bot.py" | grep -v grep
+
+  # Kill old processes (keep only the latest)
+  kill -9 <PID>
+  ```
+
+**Messages stored without embeddings:**
+- This happens when old bot instances are running with outdated code
+- Kill all bot processes and restart with the latest code
+- Verify embeddings are stored: Run in Supabase SQL Editor:
+  ```sql
+  SELECT id, text, embedding IS NULL as missing_embedding
+  FROM messages
+  ORDER BY created_at DESC
+  LIMIT 10;
+  ```
 
 **Database errors:**
 - Verify Supabase URL/key are correct
-- Check tables exist (run schema SQL)
+- Check tables exist (run `backend/schema.sql`)
+- Ensure pgvector extension is enabled: `CREATE EXTENSION IF NOT EXISTS vector;`
 - Enable real-time on `issue_groups` table
 
 **Frontend not updating:**
 - Check browser console for errors
 - Verify `VITE_*` env vars match Supabase credentials
 - Ensure real-time is enabled in Supabase
+
+**Grouping not working:**
+- Ensure embeddings are being stored (see above)
+- Check similarity threshold in `backend/app/grouping.py` (default: 0.60)
+- Verify messages are in the same category for grouping
 
 ## Architecture
 

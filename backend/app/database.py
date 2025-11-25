@@ -48,7 +48,8 @@ def store_message(
     text: str,
     thread_ts: Optional[str],
     timestamp: datetime,
-    classification: Dict[str, Any]
+    classification: Dict[str, Any],
+    embedding: Optional[list] = None
 ) -> str:
     """
     Store a classified Slack message in the database.
@@ -92,16 +93,23 @@ def store_message(
         'summary': classification['summary']
     }
 
+    # Format embedding as string for pgvector if provided
+    if embedding is not None:
+        # Convert to string format for pgvector: "[val1,val2,...]"
+        embedding_str = '[' + ','.join(map(str, embedding)) + ']'
+        message_data['embedding'] = embedding_str
+
     try:
         # Insert message into database
         result = supabase.table('messages').insert(message_data).execute()
-
-        # Extract and return the message ID
         message_id = result.data[0]['id']
+
         return message_id
 
     except Exception as e:
         print(f"❌ Database error storing message: {e}")
+        import traceback
+        traceback.print_exc()
         raise
 
 
@@ -191,8 +199,7 @@ def create_issue_group(
     title: str,
     summary: str,
     category: str,
-    priority: str = 'medium',
-    workflow_status: str = 'backlog'
+    priority: str = 'medium'
 ) -> str:
     """
     Create a new issue group.
@@ -202,7 +209,6 @@ def create_issue_group(
         summary: Detailed summary of the grouped issue
         category: Issue category (support, bug, feature, question)
         priority: Priority level (critical, high, medium, low). Defaults to 'medium'
-        workflow_status: Workflow status. Defaults to 'backlog'
 
     Returns:
         UUID of the created issue group
@@ -216,9 +222,8 @@ def create_issue_group(
         'title': title,
         'summary': summary,
         'category': category,
-        'status': 'open',  # Legacy field
-        'priority': priority,
-        'workflow_status': workflow_status
+        'status': 'open',
+        'priority': priority
     }
 
     try:
@@ -333,8 +338,9 @@ def get_messages_in_group(group_id: str) -> list[Dict[str, Any]]:
 
     try:
         # Join messages with message_groups to get similarity scores
+        # Explicitly request embedding field
         result = supabase.table('message_groups')\
-            .select('*, messages(*)')\
+            .select('similarity_score, messages(id, text, user_name, channel_name, timestamp, category, summary, embedding)')\
             .eq('group_id', group_id)\
             .execute()
 

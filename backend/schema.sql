@@ -1,6 +1,9 @@
 -- Nixo FDE Slackbot Database Schema
 -- Run this in Supabase SQL Editor
 
+-- Enable pgvector extension (required for embeddings and semantic similarity)
+CREATE EXTENSION IF NOT EXISTS vector;
+
 -- Table 1: messages
 -- Stores all relevant Slack messages from customers
 CREATE TABLE messages (
@@ -17,6 +20,7 @@ CREATE TABLE messages (
     category TEXT NOT NULL CHECK (category IN ('support', 'bug', 'feature', 'question', 'irrelevant')),
     confidence FLOAT NOT NULL CHECK (confidence >= 0 AND confidence <= 1),
     summary TEXT NOT NULL,
+    embedding vector(1536),  -- OpenAI embedding for semantic similarity (text-embedding-3-small)
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -27,6 +31,7 @@ CREATE TABLE issue_groups (
     title TEXT NOT NULL,
     summary TEXT NOT NULL,
     category TEXT NOT NULL CHECK (category IN ('support', 'bug', 'feature', 'question')),
+    priority TEXT DEFAULT 'medium' CHECK (priority IN ('critical', 'high', 'medium', 'low')),
     status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed')),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -48,6 +53,7 @@ CREATE INDEX idx_messages_relevant ON messages(is_relevant) WHERE is_relevant = 
 CREATE INDEX idx_messages_category ON messages(category);
 CREATE INDEX idx_messages_channel ON messages(channel_id);
 CREATE INDEX idx_messages_thread ON messages(thread_ts) WHERE thread_ts IS NOT NULL;
+CREATE INDEX idx_messages_embedding ON messages USING ivfflat (embedding vector_cosine_ops);  -- For fast similarity search
 CREATE INDEX idx_groups_status ON issue_groups(status);
 CREATE INDEX idx_groups_created ON issue_groups(created_at DESC);
 CREATE INDEX idx_message_groups_group ON message_groups(group_id);
