@@ -164,7 +164,7 @@ def handle_error(error, body, logger):
 
 if __name__ == "__main__":
     # Start the bot using Socket Mode
-    print("⚡ Nixo FDE Monitor is running!")
+    print("⚡ FDE Monitor is running!")
     print(f"   Filtering messages from FDE user: {FDE_USER_ID}")
     print("   Connecting to Slack via Socket Mode...")
 

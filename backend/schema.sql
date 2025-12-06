@@ -1,4 +1,4 @@
--- Nixo FDE Slackbot Database Schema
+-- FDE Slackbot Database Schema
 -- Run this in Supabase SQL Editor
 
 -- Enable pgvector extension (required for embeddings and semantic similarity)

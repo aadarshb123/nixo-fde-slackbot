@@ -16,7 +16,7 @@ AI-powered Slack bot that monitors customer messages, classifies issues using GP
 
 ```bash
 git clone <repo-url>
-cd nixo-coding-challenge
+cd fde-slackbot
 
 # Backend
 cd backend

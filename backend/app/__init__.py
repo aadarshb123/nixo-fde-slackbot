@@ -1,5 +1,5 @@
 """
-Nixo FDE Slackbot
+FDE Slackbot
 A Forward-Deployed Engineering bot that monitors customer communications.
 """
 

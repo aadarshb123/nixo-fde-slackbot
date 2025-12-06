@@ -9,7 +9,7 @@ export function getTheme(darkMode: boolean): Theme {
     textSecondary: darkMode ? '#bdbdbd' : '#6d6d6d',
     border: darkMode ? '#3a3a3a' : '#eee',
     hover: darkMode ? '#3a3a3a' : '#f4f4f4',
-    accent: darkMode ? '#e84a9a' : '#c41a76',
+    accent: darkMode ? '#3b82f6' : '#1e3a8a',
   }
 }
 
